@@ -2,8 +2,8 @@ name: Daily Financials Update Workflow
 
 on:
   schedule:
-    - cron: "0 15 * * *"  # 한국 시간 매일 0시 (UTC 15시)
-  workflow_dispatch:  # 수동 실행도 가능
+    - cron: "10 15 * * *"  # UTC 15:10 → KST 다음날 00:10
+  workflow_dispatch:
 
 jobs:
   run:
@@ -22,7 +22,18 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run data collector
-        run: python update_financials.py
+        run: python main.py
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
-          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+          NEON_DB_URL:   ${{ secrets.NEON_DB_URL }}
+
+      - name: Send notification email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username:     ${{ secrets.GMAIL_USER }}
+          password:     ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject:      "Daily Financials Update Completed"
+          body:         "✅ 재무정보 업데이트가 성공적으로 완료되었습니다."
+          to:           hmroh7363@gmail.com
