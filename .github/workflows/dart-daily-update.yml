@@ -16,11 +16,10 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Bypass PowerShell Execution Policy
-        # Windows 셀에서만 실행되도록 pwsh(shell) 지정
-        shell: pwsh
-        run: |
-          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-
+        # PowerShell에서 스크립트 실행 막아두었지만, 이 GitHub Actions 실행 동안에는 풀어주세요!
+        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+        shell: powershell
+        
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
