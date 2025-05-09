@@ -19,11 +19,9 @@ jobs:
         # PowerShell에서 스크립트 실행 막아두었지만, 이 GitHub Actions 실행 동안에는 풀어주세요!
         run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
         shell: powershell
-        
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+
+      - name: Check Python version (미리 설치된 기존 Python 사용)
+        run: python --version
 
       - name: Install dependencies
         run: pip install -r requirements.txt
