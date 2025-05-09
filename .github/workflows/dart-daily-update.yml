@@ -2,7 +2,8 @@ name: Daily Financials Update Workflow
 
 on:
   schedule:
-    - cron: "10 15 * * *"  # UTC 15:10 → KST 다음날 00:10
+    # UTC 15:10 → KST 다음날 00:10
+    - cron: '10 15 * * *'
   workflow_dispatch:
 
 jobs:
@@ -16,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -27,6 +28,11 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           DATABASE_URL:   ${{ secrets.DATABASE_URL }}
 
+      - name: Run internal DB work
+        run: python scripts/do_db_work.py
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Send notification email
         uses: dawidd6/action-send-mail@v3
         with:
@@ -34,6 +40,6 @@ jobs:
           server_port: 465
           username:     ${{ secrets.GMAIL_USER }}
           password:     ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject:      "Daily Financials Update Completed"
-          body:         "✅ 재무정보 업데이트가 성공적으로 완료되었습니다."
+          subject:      'Daily Financials Update Completed'
+          body:         '✅ 재무정보 업데이트 및 DB 업로드가 완료되었습니다.'
           to:           hmroh7363@gmail.com
