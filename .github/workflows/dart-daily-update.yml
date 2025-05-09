@@ -8,11 +8,18 @@ on:
 
 jobs:
   run:
-    runs-on: self-hosted
+    # self-hosted Windows x64 러너 지정
+    runs-on: [self-hosted, Windows, X64]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Bypass PowerShell Execution Policy
+        # Windows 셀에서만 실행되도록 pwsh(shell) 지정
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -25,21 +32,21 @@ jobs:
       - name: Run data collector
         run: python main.py
         env:
-          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          DART_API_KEY:   ${{ secrets.DART_API_KEY }}
           DATABASE_URL:   ${{ secrets.DATABASE_URL }}
 
       - name: Run internal DB work
         run: python scripts/do_db_work.py
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL:   ${{ secrets.DATABASE_URL }}
 
       - name: Send notification email
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username:     ${{ secrets.GMAIL_USER }}
-          password:     ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject:      'Daily Financials Update Completed'
-          body:         '✅ 재무정보 업데이트 및 DB 업로드가 완료되었습니다.'
-          to:           hmroh7363@gmail.com
+          server_address:  smtp.gmail.com
+          server_port:     465
+          username:        ${{ secrets.GMAIL_USER }}
+          password:        ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject:         'Daily Financials Update Completed'
+          body:            '✅ 재무정보 업데이트 및 DB 업로드가 완료되었습니다.'
+          to:              hmroh7363@gmail.com
