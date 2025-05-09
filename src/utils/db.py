@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()
+# 이걸 넣으면 .env가 제대로 덮어쓰기 돼서 이전 캐시가 무시될 가능성이 높아져.
+load_dotenv(override=True)
 
 import pandas as pd
 import numpy as np
