@@ -39,16 +39,17 @@ jobs:
           DART_API_KEY:   ${{ secrets.DART_API_KEY }}
           DATABASE_URL:   ${{ secrets.DATABASE_URL }}
         run: |
-          # 1) 세션 인코딩을 UTF-8로 맞춤
+          # 1) 세션 인코딩과 에러 동작 조정
           chcp.com 65001
           [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $ErrorActionPreference = 'Continue'
 
           # 2) 파이썬 실행 → UTF-8 로그 저장
           python main.py 2>&1 |
             Out-File -FilePath output.log -Encoding utf8
 
-          # 3) 스텝이 실패로 처리되지 않도록
+          # 3) 무조건 성공(0)으로 종료
           exit 0
 
       - name: Check if DART API stopped due to limit
