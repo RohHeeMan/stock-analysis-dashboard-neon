@@ -8,67 +8,83 @@ on:
 
 jobs:
   run:
-    # self-hosted Windows x64 러너 지정
     runs-on: [self-hosted, Windows, X64]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Bypass PowerShell Execution Policy
-        # PowerShell에서 스크립트 실행 막아두었지만, 이 GitHub Actions 실행 동안에는 풀어주세요!
-        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
         shell: powershell
+        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 
-      - name: Set UTF-8 encoding for console
-        run: chcp 65001
+      - name: Set UTF-8 encoding for console (cmd)
         shell: cmd
+        run: chcp 65001
 
       - name: Set PYTHONIOENCODING=utf-8 for all steps
-        run: echo "PYTHONIOENCODING=utf-8" >> $env:GITHUB_ENV
         shell: powershell
-        
-      - name: Check Python version ( 서버에 미리 설치된 기존 Python 사용 )
+        run: echo "PYTHONIOENCODING=utf-8" >> $env:GITHUB_ENV
+
+      - name: Check Python version
         run: python --version
 
-      - name: Install dependencies ( 필요 항목 설치 작업 )
+      - name: Install dependencies
         run: pip install -r requirements.txt
 
       - name: Run data collector (재무제표 수집)
         id: run-main
         shell: powershell
-        run: |
-          python main.py 2>&1 | Tee-Object -FilePath output.log
+        continue-on-error: true
         env:
           DART_API_KEY:   ${{ secrets.DART_API_KEY }}
           DATABASE_URL:   ${{ secrets.DATABASE_URL }}
-        continue-on-error: true
-          
+        run: |
+          # 1) 세션 인코딩을 UTF-8로 맞춤
+          chcp.com 65001
+          [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+          # 2) 파이썬 실행 → UTF-8 로그 저장
+          python main.py 2>&1 |
+            Out-File -FilePath output.log -Encoding utf8
+
+          # 3) 스텝이 실패로 처리되지 않도록
+          exit 0
+
       - name: Check if DART API stopped due to limit
         id: check19000
         shell: powershell
         run: |
-          # PowerShell 의 Select-String 사용
-          if (Select-String -Pattern 'DART API 일일 호출 한도\(19000\)' -Path output.log) {
-            echo "stopped_reason=19000" >> $env:GITHUB_OUTPUT
+          # PowerShell 인코딩 재설정
+          chcp.com 65001
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+          # output.log가 있으면 패턴 매칭
+          if (Test-Path output.log) {
+            if (Select-String -Path output.log -Pattern 'DART API 일일 호출 한도\(19000\)') {
+              Add-Content -Path $env:GITHUB_OUTPUT -Value 'stopped_reason=19000'
+            }
           }
 
       - name: Send notification email
-        if: always()  # 성공, 실패 관계없이 항상 실행
+        if: always()
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
-          username: ${{ secrets.GMAIL_USER }}
-          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          username:    ${{ secrets.GMAIL_USER }}
+          password:    ${{ secrets.GMAIL_APP_PASSWORD }}
+          from:        ${{ secrets.GMAIL_USER }}
+          to:          hmroh7363@gmail.com
           subject: >
-            ${{ steps.check19000.outputs.stopped_reason == '19000' && '⛔ DART 호출 제한으로 중단됨'
-            || job.status == 'failure' && '❌ 재무정보 업데이트 실패'
-            || '✅ 재무정보 업데이트 완료' }}
+            ${{ steps.check19000.outputs.stopped_reason == '19000'
+                && '⛔ DART 호출 제한으로 중단됨'
+                || job.status == 'failure'
+                && '❌ 재무정보 업데이트 실패'
+                || '✅ 재무정보 업데이트 완료' }}
           body: >
             ${{ steps.check19000.outputs.stopped_reason == '19000'
                 && 'DART API 호출 횟수(19000)에 도달하여 수집을 중단했습니다.'
                 || job.status == 'failure'
                 && '예기치 못한 오류로 재무정보 수집이 실패했습니다.'
                 || '정상적으로 재무정보 수집 및 DB 업로드가 완료되었습니다.' }}
-          to: hmroh7363@gmail.com
