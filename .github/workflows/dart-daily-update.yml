@@ -34,19 +34,38 @@ jobs:
       - name: Install dependencies ( 필요 항목 설치 작업 )
         run: pip install -r requirements.txt
 
-      - name: Run data collector ( 재무제표 수집 )
-        run: python main.py
+      - name: Run data collector (재무제표 수집)
+        id: run-main
+        run: |
+          python main.py 2>&1 | tee output.log
         env:
           DART_API_KEY:   ${{ secrets.DART_API_KEY }}
           DATABASE_URL:   ${{ secrets.DATABASE_URL }}
           
+      - name: Check if DART API stopped due to limit (19000)
+        id: check19000
+        run: |
+          if grep -q "DART API 호출 횟수(19000)" output.log; then
+            echo "stopped_reason=19000" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
       - name: Send notification email
+        if: always()  # 성공, 실패 관계없이 항상 실행
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address:  smtp.gmail.com
-          server_port:     465
-          username:        ${{ secrets.GMAIL_USER }}
-          password:        ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject:         'Daily Financials Update Completed'
-          body:            '✅ 재무정보 업데이트 및 DB 업로드가 완료되었습니다.'
-          to:              hmroh7363@gmail.com
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: >
+            ${{ steps.check19000.outputs.stopped_reason == '19000' && '⛔ DART 호출 제한으로 중단됨'
+            || job.status == 'failure' && '❌ 재무정보 업데이트 실패'
+            || '✅ 재무정보 업데이트 완료' }}
+          body: >
+            ${{ steps.check19000.outputs.stopped_reason == '19000'
+                && 'DART API 호출 횟수(19000)에 도달하여 수집을 중단했습니다.'
+                || job.status == 'failure'
+                && '예기치 못한 오류로 재무정보 수집이 실패했습니다.'
+                || '정상적으로 재무정보 수집 및 DB 업로드가 완료되었습니다.' }}
+          to: hmroh7363@gmail.com
