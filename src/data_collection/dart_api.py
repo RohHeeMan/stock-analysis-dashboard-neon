@@ -85,9 +85,12 @@ def fetch(url: str, **kwargs) -> requests.Response:
                AND used_calls < :max_calls
          RETURNING used_calls
         """), {"d": today, "max_calls": MAX_CALLS}).fetchone()
-        if row is None:
-            raise RuntimeError(f"DART API 일일 호출 한도({MAX_CALLS}) 초과: date={today}")
 
+        if row is None:
+        # 호출 한도(19000) 초과 직전의 today 값을 찍어 봅시다
+        print(f"[DEBUG] 한도 초과 발생! 오늘 날짜(date) = {today!r}")
+        raise RuntimeError(f"DART API 일일 호출 한도({MAX_CALLS}) 초과: date={today}")
+        
     # 실제 요청
     try:
         resp = requests.get(url, **kwargs)
