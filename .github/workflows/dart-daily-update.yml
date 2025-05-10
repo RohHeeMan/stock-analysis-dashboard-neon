@@ -20,6 +20,14 @@ jobs:
         run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
         shell: powershell
 
+      - name: Set UTF-8 encoding for console
+        run: chcp 65001
+        shell: cmd
+
+      - name: Set PYTHONIOENCODING=utf-8 for all steps
+        run: echo "PYTHONIOENCODING=utf-8" >> $env:GITHUB_ENV
+        shell: powershell
+        
       - name: Check Python version (미리 설치된 기존 Python 사용)
         run: python --version
 
