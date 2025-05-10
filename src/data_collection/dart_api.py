@@ -11,6 +11,7 @@ from typing import List, Dict, Tuple
 
 import requests
 from sqlalchemy import create_engine, text
+from datetime import datetime, timedelta
 
 from src.utils.db import fetch_dataframe, execute_query
 from dotenv import load_dotenv
@@ -44,30 +45,36 @@ MAX_CALLS = int(os.getenv('MAX_CALLS', 19000))
 # 정확한 호출수 계산되니 19,000까지만 돌려도 상관없음.
 #MAX_CALLS = int(os.getenv('MAX_CALLS', 19000))
 
+def get_today_kst() -> date:
+    """
+    UTC 현재 시각에 9시간 더해서 한국 날짜(today)를 얻습니다.
+    """
+    return (datetime.utcnow() + timedelta(hours=9)).date()
+
 def init_today_counter():
     """
     스크립트 시작 시 오늘 날짜의 카운터 레코드를 생성합니다.단 가상컴퓨터(서버)시간으로 체크
     """
-    today = datetime.now(kst).date().isoformat()
+    today = get_today_kst()
     with engine.begin() as conn:
         conn.execute(text(
             "INSERT INTO dart_state(date, used_calls) VALUES (:d, 0) "
             "ON CONFLICT(date) DO NOTHING"
-        )
+        ), {"d": today})
 
 def fetch(url: str, **kwargs) -> requests.Response:
     """
     API 호출 전 used_calls < MAX_CALLS 확인 & +1,
     호출 실패 시 -1 롤백 처리 (원자적 관리)
     """
-    # 날짜가 변경되었으면 오늘 레코드 초기화
-    today = datetime.now(kst).date().isoformat()
+    today = get_today_kst()
+    # 오늘 레코드가 없으면 삽입
     with engine.begin() as conn:
         conn.execute(text("""
             INSERT INTO dart_state(date, used_calls)
-            VALUES(:d, 0)
+            VALUES (:d, 0)
             ON CONFLICT(date) DO NOTHING
-        """)
+        """), {"d": today})
                      
     # 슬롯 확보
     with engine.begin() as conn:
@@ -75,24 +82,24 @@ def fetch(url: str, **kwargs) -> requests.Response:
             UPDATE dart_state
                SET used_calls = used_calls + 1
              WHERE date = :d
-               AND used_calls < {MAX_CALLS}
+               AND used_calls < :max_calls
          RETURNING used_calls
-        """), {"d": today}).fetchone()
+        """), {"d": today, "max_calls": MAX_CALLS}).fetchone()
         if row is None:
             raise RuntimeError(f"DART API 일일 호출 한도({MAX_CALLS}) 초과: date={today}")
 
+    # 실제 요청
     try:
         resp = requests.get(url, **kwargs)
         resp.raise_for_status()
         return resp
     except Exception:
-        # 실패 시 롤백
+        # 실패 시 카운트 롤백
         with engine.begin() as conn:
             conn.execute(text(
                 "UPDATE dart_state SET used_calls = used_calls - 1 WHERE date = :d"
             ), {"d": today})
         raise
-
 
 def init_corp_codes():
     """
