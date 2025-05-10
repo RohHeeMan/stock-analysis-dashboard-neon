@@ -16,7 +16,7 @@ from src.utils.db import fetch_dataframe, execute_query
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
-load_dotenv(override=True)
+load_dotenv()
 
 # ─── 환경 변수 및 DB 연결 ──────────────────────────────────────────
 DART_API_KEY = os.getenv('DART_API_KEY')
@@ -37,12 +37,12 @@ FS_PRIORITY         = ['CFS', 'OFS']  # 연결 우선 → 개별
 MAX_CALLS = int(os.getenv('MAX_CALLS', 19000))
 
 # 재무제표 종류, 공시 코드
-REPORT_CODE = '11011'         # 연간사업보고서
-FS_PRIORITY = ['CFS', 'OFS']  # 연결재무제표 우선 → 개별재무제표
+#REPORT_CODE = '11011'         # 연간사업보고서
+#FS_PRIORITY = ['CFS', 'OFS']  # 연결재무제표 우선 → 개별재무제표
 
 # 하루 최대 호출 수(20,000번 이지만 안전을 위해서 19,000만 수집, 다음날 다시 수집하면 dart_state이용 처리 하니까 하루 호출수 감소)
 # 정확한 호출수 계산되니 19,000까지만 돌려도 상관없음.
-MAX_CALLS = int(os.getenv('MAX_CALLS', 19000))
+#MAX_CALLS = int(os.getenv('MAX_CALLS', 19000))
 
 def init_today_counter():
     """
