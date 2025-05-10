@@ -36,19 +36,22 @@ jobs:
 
       - name: Run data collector (재무제표 수집)
         id: run-main
+        shell: pwsh
         run: |
-          python main.py 2>&1 | tee output.log
+          python main.py 2>&1 | Tee-Object -FilePath output.log
         env:
           DART_API_KEY:   ${{ secrets.DART_API_KEY }}
           DATABASE_URL:   ${{ secrets.DATABASE_URL }}
+        continue-on-error: true
           
-      - name: Check if DART API stopped due to limit (19000)
+      - name: Check if DART API stopped due to limit
         id: check19000
+        shell: pwsh
         run: |
-          if grep -q "DART API 호출 횟수(19000)" output.log; then
-            echo "stopped_reason=19000" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
+          # PowerShell 의 Select-String 사용
+          if (Select-String -Pattern 'DART API 일일 호출 한도\(19000\)' -Path output.log) {
+            echo "stopped_reason=19000" >> $env:GITHUB_OUTPUT
+          }
 
       - name: Send notification email
         if: always()  # 성공, 실패 관계없이 항상 실행
