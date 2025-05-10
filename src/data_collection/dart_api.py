@@ -46,15 +46,14 @@ MAX_CALLS = int(os.getenv('MAX_CALLS', 19000))
 
 def init_today_counter():
     """
-    스크립트 시작 시 오늘 날짜의 카운터 레코드를 생성합니다.
+    스크립트 시작 시 오늘 날짜의 카운터 레코드를 생성합니다.단 가상컴퓨터(서버)시간으로 체크
     """
     today = datetime.now(kst).date().isoformat()
     with engine.begin() as conn:
         conn.execute(text(
             "INSERT INTO dart_state(date, used_calls) VALUES (:d, 0) "
             "ON CONFLICT(date) DO NOTHING"
-        ), {"d": today})
-
+        )
 
 def fetch(url: str, **kwargs) -> requests.Response:
     """
@@ -68,8 +67,8 @@ def fetch(url: str, **kwargs) -> requests.Response:
             INSERT INTO dart_state(date, used_calls)
             VALUES(:d, 0)
             ON CONFLICT(date) DO NOTHING
-        """), {"d": today})
-
+        """)
+                     
     # 슬롯 확보
     with engine.begin() as conn:
         row = conn.execute(text(f"""
