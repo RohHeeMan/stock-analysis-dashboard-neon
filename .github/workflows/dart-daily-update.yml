@@ -36,7 +36,7 @@ jobs:
 
       - name: Run data collector (재무제표 수집)
         id: run-main
-        shell: pwsh
+        shell: powershell
         run: |
           python main.py 2>&1 | Tee-Object -FilePath output.log
         env:
@@ -46,7 +46,7 @@ jobs:
           
       - name: Check if DART API stopped due to limit
         id: check19000
-        shell: pwsh
+        shell: powershell
         run: |
           # PowerShell 의 Select-String 사용
           if (Select-String -Pattern 'DART API 일일 호출 한도\(19000\)' -Path output.log) {
