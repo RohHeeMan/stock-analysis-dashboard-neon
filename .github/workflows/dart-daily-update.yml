@@ -28,23 +28,18 @@ jobs:
         run: echo "PYTHONIOENCODING=utf-8" >> $env:GITHUB_ENV
         shell: powershell
         
-      - name: Check Python version (미리 설치된 기존 Python 사용)
+      - name: Check Python version ( 서버에 미리 설치된 기존 Python 사용 )
         run: python --version
 
-      - name: Install dependencies
+      - name: Install dependencies ( 필요 항목 설치 작업 )
         run: pip install -r requirements.txt
 
-      - name: Run data collector
+      - name: Run data collector ( 재무제표 수집 )
         run: python main.py
         env:
           DART_API_KEY:   ${{ secrets.DART_API_KEY }}
           DATABASE_URL:   ${{ secrets.DATABASE_URL }}
-
-      - name: Run internal DB work
-        run: python scripts/do_db_work.py
-        env:
-          DATABASE_URL:   ${{ secrets.DATABASE_URL }}
-
+          
       - name: Send notification email
         uses: dawidd6/action-send-mail@v3
         with:
