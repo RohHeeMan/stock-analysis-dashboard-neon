@@ -7,6 +7,7 @@ import logging
 import pandas as pd
 import requests
 from sqlalchemy import create_engine, text
+import sys
 
 from src.data_collection.dart_api import (
     fetch_all_corp_codes,
@@ -346,4 +347,8 @@ def main():
 
 # main 함수 실행
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        logging.exception("스크립트 수행 중 에러 발생")
+        sys.exit(0)   # 예외가 나도 exit code 0으로 종료
