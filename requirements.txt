@@ -13,4 +13,3 @@ psycopg2-binary
 python-dotenv
 tqdm
 psycopg2
-psycopg[binary]>=3.1
