@@ -30,15 +30,19 @@ jobs:
       - name: Run data collector (재무제표 수집)
         id: run-main
         shell: powershell
+        continue-on-error: true        # 스텝 실패가 워크플로 전체로 파급되지 않도록
         env:
           DART_API_KEY:   ${{ secrets.DART_API_KEY }}
           DATABASE_URL:   ${{ secrets.DATABASE_URL }}
         run: |
-          # 파이썬 실행 결과를 모두 캡처
+          # 이 줄을 맨 위에!
+          $ErrorActionPreference = 'Continue'
+      
+          # python 실행 결과를 모두 캡처
           $output = python main.py 2>&1
           Write-Host $output
-
-          # 에러 코드가 0이 아니면
+      
+          # exit 코드가 0이 아니면
           if ($LASTEXITCODE -ne 0) {
             # 19000 한도 초과 메시지면 실패가 아닌 것으로 처리
             if ($output -match 'DART API 일일 호출 한도\(19000\)') {
@@ -48,7 +52,7 @@ jobs:
             # 그 외 에러는 원래 코드로 실패 처리
             exit $LASTEXITCODE
           }
-
+          
       - name: Send notification email
         if: always()
         uses: dawidd6/action-send-mail@v3
