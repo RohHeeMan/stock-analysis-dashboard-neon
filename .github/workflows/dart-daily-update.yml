@@ -17,10 +17,6 @@ jobs:
         shell: powershell
         run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
 
-      - name: Set UTF-8 encoding for console (cmd)
-        shell: cmd
-        run: chcp 65001
-
       - name: Set PYTHONIOENCODING=utf-8 for all steps
         shell: powershell
         run: echo "PYTHONIOENCODING=utf-8" >> $env:GITHUB_ENV
@@ -35,37 +31,43 @@ jobs:
         id: run-main
         shell: powershell
         env:
-          …
+          DART_API_KEY:   ${{ secrets.DART_API_KEY }}
+          DATABASE_URL:   ${{ secrets.DATABASE_URL }}
         run: |
+          # 파이썬 실행 결과를 모두 캡처
           $output = python main.py 2>&1
           Write-Host $output
 
+          # 에러 코드가 0이 아니면
           if ($LASTEXITCODE -ne 0) {
+            # 19000 한도 초과 메시지면 실패가 아닌 것으로 처리
             if ($output -match 'DART API 일일 호출 한도\(19000\)') {
               echo "stopped_reason=19000" >> $env:GITHUB_OUTPUT
               exit 0
             }
+            # 그 외 에러는 원래 코드로 실패 처리
             exit $LASTEXITCODE
           }
-          
+
       - name: Send notification email
         if: always()
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
-          username:    ${{ secrets.GMAIL_USER }}
-          password:    ${{ secrets.GMAIL_APP_PASSWORD }}
-          from:        ${{ secrets.GMAIL_USER }}
-          to:          hmroh7363@gmail.com
+          secure: true
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          from:     ${{ secrets.GMAIL_USER }}
+          to:       hmroh7363@gmail.com
           subject: >
-            ${{ steps.check19000.outputs.stopped_reason == '19000'
+            ${{ steps.run-main.outputs.stopped_reason == '19000'
                 && '⛔ DART 호출 제한으로 중단됨'
                 || job.status == 'failure'
                 && '❌ 재무정보 업데이트 실패'
                 || '✅ 재무정보 업데이트 완료' }}
           body: >
-            ${{ steps.check19000.outputs.stopped_reason == '19000'
+            ${{ steps.run-main.outputs.stopped_reason == '19000'
                 && 'DART API 호출 횟수(19000)에 도달하여 수집을 중단했습니다.'
                 || job.status == 'failure'
                 && '예기치 못한 오류로 재무정보 수집이 실패했습니다.'
