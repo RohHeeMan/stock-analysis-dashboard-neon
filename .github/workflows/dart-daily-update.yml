@@ -34,39 +34,20 @@ jobs:
       - name: Run data collector (재무제표 수집)
         id: run-main
         shell: powershell
-        continue-on-error: true
         env:
-          DART_API_KEY:   ${{ secrets.DART_API_KEY }}
-          DATABASE_URL:   ${{ secrets.DATABASE_URL }}
+          …
         run: |
-          # 1) 세션 인코딩과 에러 동작 조정
-          chcp.com 65001
-          [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
-          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          $ErrorActionPreference = 'Continue'
+          $output = python main.py 2>&1
+          Write-Host $output
 
-          # 2) 파이썬 실행 → UTF-8 로그 저장
-          python main.py 2>&1 |
-            Out-File -FilePath output.log -Encoding utf8
-
-          # 3) 무조건 성공(0)으로 종료
-          exit 0
-
-      - name: Check if DART API stopped due to limit
-        id: check19000
-        shell: powershell
-        run: |
-          # PowerShell 인코딩 재설정
-          chcp.com 65001
-          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-
-          # output.log가 있으면 패턴 매칭
-          if (Test-Path output.log) {
-            if (Select-String -Path output.log -Pattern 'DART API 일일 호출 한도\(19000\)') {
-              Add-Content -Path $env:GITHUB_OUTPUT -Value 'stopped_reason=19000'
+          if ($LASTEXITCODE -ne 0) {
+            if ($output -match 'DART API 일일 호출 한도\(19000\)') {
+              echo "stopped_reason=19000" >> $env:GITHUB_OUTPUT
+              exit 0
             }
+            exit $LASTEXITCODE
           }
-
+          
       - name: Send notification email
         if: always()
         uses: dawidd6/action-send-mail@v3
