@@ -11,21 +11,6 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Bypass PowerShell Execution Policy
-        shell: powershell
-        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-
-      - name: Set PYTHONIOENCODING=utf-8 for all steps
-        shell: powershell
-        run: echo "PYTHONIOENCODING=utf-8" >> $env:GITHUB_ENV
-
       - name: Check Python version
         run: python --version
 
