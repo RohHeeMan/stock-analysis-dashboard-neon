@@ -11,7 +11,7 @@ from typing import List, Dict, Tuple
 
 import requests
 from sqlalchemy import create_engine, text
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta   # ← date 추가
 
 from src.utils.db import fetch_dataframe, execute_query
 from dotenv import load_dotenv
@@ -46,10 +46,10 @@ MAX_CALLS = int(os.getenv('MAX_CALLS', 19000))
 #MAX_CALLS = int(os.getenv('MAX_CALLS', 19000))
 
 def get_today_kst() -> date:
-    """
-    UTC 현재 시각에 9시간 더해서 한국 날짜(today)를 얻습니다.
-    """
-    return (datetime.utcnow() + timedelta(hours=9)).date()
+     """
+     UTC 현재 시각에 9시간 더해서 한국 날짜(today)를 얻습니다.
+     """
+     return (datetime.utcnow() + timedelta(hours=9)).date()
 
 def init_today_counter():
     """
@@ -87,9 +87,9 @@ def fetch(url: str, **kwargs) -> requests.Response:
         """), {"d": today, "max_calls": MAX_CALLS}).fetchone()
 
         if row is None:
-        # 호출 한도(19000) 초과 직전의 today 값을 찍어 봅시다
-        print(f"[DEBUG] 한도 초과 발생! 오늘 날짜(date) = {today!r}")
-        raise RuntimeError(f"DART API 일일 호출 한도({MAX_CALLS}) 초과: date={today}")
+            # 한도 초과 직전의 today 값을 로그로 남기고
+            print(f"[DEBUG] 한도 초과 발생! 오늘 날짜 = {today!r}")
+            raise RuntimeError(f"DART API 일일 호출 한도({MAX_CALLS}) 초과: date={today}")        
         
     # 실제 요청
     try:
